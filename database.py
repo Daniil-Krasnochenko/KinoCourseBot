@@ -6,7 +6,6 @@ import mysql.connector
 import requests
 from aiogram import Router
 from aiogram import Bot, Dispatcher,  F
-import time
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, URLInputFile
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from io import BytesIO
@@ -35,35 +34,33 @@ con = connection(config)
 cursor = con.cursor()
 
 
-def add_user(message: Message) -> bool:
+def add_user(message: Message):
     
     print(message.message_id, message.from_user.id)
     con = connection(config)
     try:
         with con.cursor() as cursor:
-            insert_query = f'INSERT INTO user (`user_id`, `country`, `genre`, `actor`)'\
-            f'VALUES({message.from_user.id}, "{message.from_user.first_name}", null, null, null, False);'
+            insert_query = f'INSERT INTO user (`iduser`,`type`, `country`, `genre`, `actor`)'\
+            f'VALUES({message.from_user.id}, null, null, null, null);'
             cursor.execute(insert_query)
             con.commit()
-        return True
+            print("Аккаунт создан")
     except Exception as ex:
         print(ex)
         print("Ошибка работы бд")
-    finally:
-        return False
-    
-        
-def have_user(id: int) -> bool:
+            
+            
+def have_user(message: Message) -> bool:
 
     try:
         con = connection(config)
         with con.cursor() as cursor:
-            find_user = "SELECT * FROM user"\
-            f" WHERE user_id = {id}"
+            find_user = f"SELECT * FROM user WHERE iduser = {message.from_user.id}"
             cursor.execute(find_user)
             result = cursor.fetchone()
             # if a row is returned, the user exists in the database
-            if result:
+            if result is not None:
+                print(result)
                 return True
             else:
                 return False
@@ -73,35 +70,42 @@ def have_user(id: int) -> bool:
 
 
 
-def select_one_user(msg: Message):
+def state_user(msg: Message) -> str:
     try:
         con = connection(config)
         with con.cursor() as cursor:
-            select_user = "SELECT * FROM user"\
-            f" WHERE user_id = {msg.from_user.id}"
+            select_user =  f"SELECT type FROM user WHERE iduser = {msg.from_user.id}"
             cursor.execute(select_user)
-            return cursor.fetchone()
+            result = cursor.fetchone()
+            state = result['type']
+            return state
     except Exception as ex:
         print(ex)
 
-async def update_user(msg: Message, genre_user: str = None,  country: str = None, actor: str = None):
+async def update_user(msg: Message, type: str = None, genre_user: str = None, country: str = None, actor: str = None):
     try:
         con = connection(config)
         if genre_user is not None:
             with con.cursor() as cursor:
-                update = f"UPDATE user SET genre = '{genre_user}', country = '{None}', actor = '{None}' WHERE user_id = {msg.from_user.id}"                    
+                update = f"UPDATE user SET genre = '{genre_user}', country = '{None}', actor = '{None}' WHERE iduser = {msg.from_user.id}"                    
                 cursor.execute(update)
                 con.commit()
-        if actor is not None:
-            with con.cursor() as cursor:
-                update = f"UPDATE user SET genre = '{None}', country = '{country}', actor = '{None}' WHERE user_id = {msg.from_user.id}"                    
-                cursor.execute(update)
-                con.commit() 
         if country is not None:
             with con.cursor() as cursor:
-                update = f"UPDATE user SET genre = '{None}', country = '{None}', actor = '{actor}' WHERE user_id = {msg.from_user.id}"                    
+                update = f"UPDATE user SET genre = '{None}', country = '{country}', actor = '{None}' WHERE iduser = {msg.from_user.id}"                    
                 cursor.execute(update)
-                con.commit()     
+                con.commit() 
+        if actor is not None:
+            with con.cursor() as cursor:
+                update = f"UPDATE user SET genre = '{None}', country = '{None}', actor = '{actor}' WHERE iduser = {msg.from_user.id}"                    
+                cursor.execute(update)
+                con.commit()    
+        if type is not None:
+            with con.cursor() as cursor:
+                update = f"UPDATE user SET type = '{type}' WHERE iduser = {msg.from_user.id}"                    
+                cursor.execute(update)
+                con.commit()  
+        
         
     except Exception as ex:
         print(ex)
@@ -109,19 +113,19 @@ async def update_user(msg: Message, genre_user: str = None,  country: str = None
 
 
 
-async def display_random_atributs(msg: Message):
+async def random_movie(msg: Message) -> str:
     
     con = connection(config)
     with con.cursor() as cursor:
         try:           
 
-            cursor.execute(f"SELECT genre FROM user WHERE user_id = {msg.from_user.id}")
+            cursor.execute(f"SELECT genre FROM user WHERE iduser = {msg.from_user.id}")
             genre_user = cursor.fetchone()
 
-            cursor.execute(f"SELECT country FROM user WHERE user_id = {msg.from_user.id}")
+            cursor.execute(f"SELECT country FROM user WHERE iduser = {msg.from_user.id}")
             country_user = cursor.fetchone()
             
-            cursor.execute(f"SELECT actor FROM user WHERE user_id = {msg.from_user.id}")
+            cursor.execute(f"SELECT actor FROM user WHERE iduser = {msg.from_user.id}")
             actor_user = cursor.fetchone()
 
             genre = genre_user['genre']
@@ -130,44 +134,106 @@ async def display_random_atributs(msg: Message):
 
             print( genre, country, actor)
 
-  
-            if genre_user is not None:
-                query = f"SELECT * FROM movie WHERE genre = '{genre}' ORDER BY RAND() LIMIT 1"
-            if country_user is not None:
-                query = f"SELECT * FROM movie WHERE country = '{country}' ORDER BY RAND() LIMIT 1"
-            if actor is not None:
-                query = f"SELECT * FROM movie WHERE actor = '{actor}' ORDER BY RAND() LIMIT 1"
+        except KeyError:
+            print("The specified row does not exist.")
+            
+    with con.cursor() as cursor:
+        if genre != 'None':
+                query = "SELECT * FROM `movie` WHERE genre = %s ORDER BY RAND() LIMIT 1"
+                cursor.execute(query, (genre,))
+                result = cursor.fetchone()
+                title :str = result['title']
+                description :str= result['description'] 
+                runtime :str  = result['runtime']
+                print(title, description, runtime)
+                message_res = f"{title} ({runtime})\n\n{description}"
+                #print(message_res)
+                return message_res
                 
+        if country != 'None':
+                query = "SELECT * FROM `movie` WHERE country = %s ORDER BY RAND() LIMIT 1"
+                cursor.execute(query, (country,))
+                result = cursor.fetchone()
+                title :str = result['title']
+                description :str= result['description'] 
+                runtime :str  = result['runtime']
+                print(title, description, runtime)
+                message_res = f"{title} ({runtime})\n\n{description}"
+                #print(message_res)
+                return message_res
                 
-            cursor.execute(query)
-            result = cursor.fetchone()
-            con.commit()
+        if actor != 'None':
+                query = f"SELECT * FROM `movie` JOIN `movie_cast` ON `idmovie` = `movie_idmovie` JOIN `actor` ON `idactor` = `actor_idactor` WHERE name ='{msg.text}' ORDER BY RAND() LIMIT 1"
+                cursor.execute(query)
+                result = cursor.fetchone()
+                title :str = result['title']
+                description :str= result['description'] 
+                runtime :str  = result['runtime']
+                print(title, description, runtime)
+                message_res = f"{title} ({runtime})\n\n{description}"
+                #print(message_res)
+                return message_res
+                    
+               
+            
+            
          
+       
+            
+    
+    #print(result)
+
+    #message_res = f"{title} ({runtime})\n\n{description}"
+    #print(message_res)
+    #return message_res
+
+
+
+async def actor_biography(name: str):
+    con = connection(config)
+    with con.cursor() as cursor:
+        try:           
+            cursor.execute(f"SELECT biography FROM actor WHERE name = '{name}'")
+            result = cursor.fetchone()
+            con.commit()  
         except KeyError:
             print("The specified row does not exist.")
 
-    title :str = result['title']
-    year :int  = result['year']
-    description :str= result['description']
+    biography :str = result['biography']
 
-    message = f"{title} ({year})\n\n{description}"
+    message = f"{name}\n\n{biography}"
     print(message)
     return message
 
 
+async def actor_facts(name: str):
+    con = connection(config)
+    with con.cursor() as cursor:
+        try:           
+            cursor.execute(f"SELECT facts FROM actor WHERE name = '{name}'")
+            result = cursor.fetchone()
+            con.commit()  
+        except KeyError:
+            print("The specified row does not exist.")
+
+    fact :str = result['facts']
+
+    message = f"{name}\n\n{fact}"
+    print(message)
+    return message
 
 
-'''
-    try:
-        # получение url изображения из MySQL
-        image_blob = result['picture']
-        if image_blob is not None:
-            image = URLInputFile(f'{image_blob}')
-            print('Все ок')
-        else:
-            print('Image blob is None')
-    except Exception as ex:
-        print(ex)
+    '''
+        try:
+            # получение url изображения из MySQL
+            image_blob = result['picture']
+            if image_blob is not None:
+                image = URLInputFile(f'{image_blob}')
+                print('Все ок')
+            else:
+                print('Image blob is None')
+        except Exception as ex:
+            print(ex)
 
     
 

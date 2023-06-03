@@ -36,9 +36,9 @@ def load_config(path: str | None) -> Config:
 # чтобы убедиться, что все данные, получаемые из переменных окружения, доступны
 '''
 $Env:BOT_TOKEN="6129398682:AAFn4V3ZxVWfLQH2VnFgKQ972i3Sj-3NhC4"
-$Env:DATABASE="KinoCourse"
-$Env:DB_HOST="127.0.0.1"
-$Env:DB_USER="Daniil_Krasnochenko"
+$Env:DATABASE="kinobot"
+$Env:DB_HOST="localhost"
+$Env:DB_USER="root"
 $Env:DB_PASSWORD="9081901303"
 $Env:DB_PORT="3306"
 '''

@@ -51,7 +51,7 @@ find_kb_builder: ReplyKeyboardBuilder = ReplyKeyboardBuilder()
 # Добавляем кнопки в билдер с параметром width=2
 find_kb_builder.row(button_actor, button_film, width=2)
 
-# Создаем клавиатуру с кнопками "Да!" и "Не"
+
 find_kb = find_kb_builder.as_markup(
                                 one_time_keyboard=True,
                                 resize_keyboard=True)
@@ -84,15 +84,7 @@ actor_kb: ReplyKeyboardMarkup = ReplyKeyboardMarkup(
                                     resize_keyboard=True)
 
 # Создаем кнопки с ответами согласия и отказа
-button_yes_choice: KeyboardButton = KeyboardButton(text=LEXICON_RU['yes_choice'])
-button_no_choice: KeyboardButton = KeyboardButton(text=LEXICON_RU['no_choice'])
-yes_no_choice_builder: ReplyKeyboardBuilder = ReplyKeyboardBuilder()
 
-yes_no_choice_builder.row(button_yes_choice, button_no_choice, width=2)
-
-yes_no_choice = yes_no_choice_builder.as_markup(
-                                one_time_keyboard=True,
-                                resize_keyboard=True)
 
 
 # ------- Создаем игровую клавиатуру без использования билдера -------
@@ -157,11 +149,11 @@ country = country_builder.as_markup(
 button_other: KeyboardButton = KeyboardButton(text=LEXICON_RU['other'])
 button_end: KeyboardButton = KeyboardButton(text=LEXICON_RU['end'])
 
-find_builder: ReplyKeyboardBuilder = ReplyKeyboardBuilder()
+poisk_builder: ReplyKeyboardBuilder = ReplyKeyboardBuilder()
 
-find_builder.row(button_other, button_end , width=2)
+poisk_builder.row(button_other, button_end , width=2)
 
-find_kb = find_builder.as_markup(
+poisk_kb = poisk_builder.as_markup(
                                 one_time_keyboard=True,
                                 resize_keyboard=True)
 
